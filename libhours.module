@@ -26,6 +26,15 @@ function libhours_menu() {
     'page arguments' => array('libhours_admin_settings'),
     'type' => MENU_NORMAL_ITEM
   );
+  $items['libhours'] = array(
+    'title' => t('Library Hours'),
+    'description' => t('Library Hours'),
+    'page callback' => 'libhours_page',
+    //'page arguments' => array(1),
+    'access callback' => 'user_access',
+    'access arguments' => array('view libhours'),
+    'type' => MENU_CALLBACK
+  );
   return $items;
 }
 
@@ -33,7 +42,7 @@ function libhours_menu() {
  * Implementation of hook_perm()
  */
 function libhours_perm() {
-  return array('administer libhours');
+  return array('view libhours', 'administer libhours');
 }
 
 /**
@@ -41,7 +50,12 @@ function libhours_perm() {
  */
 function libhours_theme() {
   return array(
-    'libhours' => array(
+    'libhours_block' => array(
+      'arguments' => array(
+        'items' => NULL
+      )
+    ),
+    'libhours_page' => array(
       'arguments' => array(
         'items' => NULL
       )
@@ -52,7 +66,7 @@ function libhours_theme() {
 /**
  * Authenticate with Google
  */
-function gdata_authenticate() {
+function libhours_gdata_authenticate() {
   $user = variable_get('libhours_user', '');
   if (empty($user)) {
     watchdog('libhours', 'Google Calendar user is not set. Please set it in the Libhours settings page.');
@@ -68,49 +82,75 @@ function gdata_authenticate() {
 /**
  * Return events
  */
-function get_events($start = null, $end = null) {
-  $calendar = new Zend_Gdata_Calendar(gdata_authenticate());
+function libhours_get_events($start = null, $end = null) {
+  $calendar = new Zend_Gdata_Calendar(libhours_gdata_authenticate());
   $query = new Zend_Gdata_Calendar_EventQuery();
   $query->setUser(variable_get('libhours_id', 'default'));
   $query->setVisibility('public');
   $query->setProjection('full');
+  $query->setOrderBy('starttime');
+  $query->setSortOrder('ascending');
   $eventFeed = $calendar->getCalendarEventFeed($query);
   return $eventFeed;
 }
 
 /**
+ * Display hours in a page
+ */
+function libhours_page() {
+  $events = libhours_get_events();
+  foreach($events as $event) {
+    $startTime = date('g:i A', strtotime($event->when[0]->startTime));
+    $endTime = date('g:i A', strtotime($event->when[0]->endTime));
+    $items[$event->title->text][] = array(
+      'startTime' => $startTime,
+      'endTime' => $endTime
+    );
+  }
+  dpr($items);
+  return $items;
+  //return theme('libhours_page', $items);
+}
+
+/**
+ * Theme the library hours page
+ */
+function theme_libhours_page($items) {
+  
+}
+
+/**
  * Implementation of hook_block()
  */
- function libhours_block($op = 'list', $delta = 0, $edit = array()) {
-   switch($op) {
-     case "list":
-       $blocks[0]['info'] = t('Libhours block');
-       $blocks[0]['cache'] = BLOCK_NO_CACHE;
-       return $blocks;
-     case "view":
-       $events = get_events();
-       foreach($events as $event) {
-         $startTime = date('g:i A', strtotime($event->when[0]->startTime));
-         $endTime = date('g:i A', strtotime($event->when[0]->endTime));
-         $items[] = array(
-           'location' => $event->title->text,
-           'startTime' => $startTime,
-           'endTime' => $endTime
-         );
-       }
-       $block['subject'] = t('Hours for '. date("D. F j"));
-       $block['content'] = theme('libhours', $items);
-       return $block;
-   }
+function libhours_block($op = 'list', $delta = 0, $edit = array()) {
+ switch($op) {
+   case "list":
+     $blocks[0]['info'] = t('Libhours block');
+     $blocks[0]['cache'] = BLOCK_NO_CACHE;
+     return $blocks;
+   case "view":
+     $events = libhours_get_events();
+     foreach($events as $event) {
+       $startTime = date('g:i A', strtotime($event->when[0]->startTime));
+       $endTime = date('g:i A', strtotime($event->when[0]->endTime));
+       $items[$event->title->text][] = array(
+         'startTime' => $startTime,
+         'endTime' => $endTime
+       );
+     }
+     $block['subject'] = t('Hours for '. date("D. F j"));
+     $block['content'] = theme('libhours_block', $items);
+     return $block;
  }
+}
 
- /**
-  * Theme the library hours block
-  */
-  function theme_libhours($items) {
-    foreach($items as $item) {
-      $output .= "<h2>". $item['location'] ."</h2>";
-      $output .= $item['startTime'] ." - ". $item['endTime'] ."<br />";
-    }
-    return $output;
+/**
+* Theme the library hours block
+*/
+function theme_libhours_block($items) {
+  foreach($items as $key => $item) {
+    $output .= "<h2>". $key ."</h2>";
+    $output .= $item[0]['startTime'] ." - ". $item[0]['endTime'] ."<br />";
   }
+  return $output;
+}
