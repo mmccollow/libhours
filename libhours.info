@@ -1,0 +1,6 @@
+; $Id$
+name = Library Hours
+description = Fetch library hours from Google Calendar
+core = 6.x
+version = 6.x-1.0
+package = McMaster University Library

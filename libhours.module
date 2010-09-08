@@ -1,0 +1,116 @@
+<?php
+
+include('libhours.admin.inc');
+
+// add zend gdata library directory to the php include path
+$gdata_library_path = dirname(__FILE__) . '/ZendGdata/library';
+set_include_path(get_include_path() . PATH_SEPARATOR . $gdata_library_path);
+
+require_once 'Zend/Loader.php';
+Zend_Loader::loadClass('Zend_Gdata');
+Zend_Loader::loadClass('Zend_Uri_Http');
+Zend_Loader::loadClass('Zend_Gdata_Calendar');
+Zend_Loader::loadClass('Zend_Gdata_ClientLogin');
+Zend_Loader::loadClass('Zend_Gdata_Calendar_EventQuery');
+
+/**
+ * Implementation of hook_menu()
+ */
+function libhours_menu() {
+  $items['admin/settings/libhours'] = array(
+    'title' => 'Library Hours',
+    'description' => t('Configure the library hours module.'),
+    'page callback' => 'drupal_get_form',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer libhours'),
+    'page arguments' => array('libhours_admin_settings'),
+    'type' => MENU_NORMAL_ITEM
+  );
+  return $items;
+}
+
+/**
+ * Implementation of hook_perm()
+ */
+function libhours_perm() {
+  return array('administer libhours');
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function libhours_theme() {
+  return array(
+    'libhours' => array(
+      'arguments' => array(
+        'items' => NULL
+      )
+    )
+  );
+}
+
+/**
+ * Authenticate with Google
+ */
+function gdata_authenticate() {
+  $user = variable_get('libhours_user', '');
+  if (empty($user)) {
+    watchdog('libhours', 'Google Calendar user is not set. Please set it in the Libhours settings page.');
+  }
+  $pass = variable_get('libhours_pass', '');
+  if (empty($pass)) {
+    watchdog('libhours', 'Google Calendar password is not set. Please set it in the Libhours settings page.');
+  }
+  $service = Zend_Gdata_Calendar::AUTH_SERVICE_NAME;
+  return Zend_Gdata_ClientLogin::getHttpClient($user, $pass, $service);
+}
+
+/**
+ * Return events
+ */
+function get_events($start = null, $end = null) {
+  $calendar = new Zend_Gdata_Calendar(gdata_authenticate());
+  $query = new Zend_Gdata_Calendar_EventQuery();
+  $query->setUser(variable_get('libhours_id', 'default'));
+  $query->setVisibility('public');
+  $query->setProjection('full');
+  $eventFeed = $calendar->getCalendarEventFeed($query);
+  return $eventFeed;
+}
+
+/**
+ * Implementation of hook_block()
+ */
+ function libhours_block($op = 'list', $delta = 0, $edit = array()) {
+   switch($op) {
+     case "list":
+       $blocks[0]['info'] = t('Libhours block');
+       $blocks[0]['cache'] = BLOCK_NO_CACHE;
+       return $blocks;
+     case "view":
+       $events = get_events();
+       foreach($events as $event) {
+         $startTime = date('g:i A', strtotime($event->when[0]->startTime));
+         $endTime = date('g:i A', strtotime($event->when[0]->endTime));
+         $items[] = array(
+           'location' => $event->title->text,
+           'startTime' => $startTime,
+           'endTime' => $endTime
+         );
+       }
+       $block['subject'] = t('Hours for '. date("D. F j"));
+       $block['content'] = theme('libhours', $items);
+       return $block;
+   }
+ }
+
+ /**
+  * Theme the library hours block
+  */
+  function theme_libhours($items) {
+    foreach($items as $item) {
+      $output .= "<h2>". $item['location'] ."</h2>";
+      $output .= $item['startTime'] ." - ". $item['endTime'] ."<br />";
+    }
+    return $output;
+  }
