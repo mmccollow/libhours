@@ -30,7 +30,6 @@ function libhours_menu() {
     'title' => t('Library Hours'),
     'description' => t('Library Hours'),
     'page callback' => 'libhours_page',
-    //'page arguments' => array(1),
     'access callback' => 'user_access',
     'access arguments' => array('view libhours'),
     'type' => MENU_CALLBACK
@@ -82,6 +81,9 @@ function libhours_gdata_authenticate() {
 
 /**
  * Return events
+ * @param $startMin   an RFC 3339 timestamp for the start of the date range to retrieve
+ * @param $startMax   an RFC 3339 timestamp for the end of the date range to retrieve
+ * @param $text       a string which will be used in a fulltext search of the calendar
  */
 function libhours_get_events($startMin = null, $startMax = null, $text = '') {
   $calendar = new Zend_Gdata_Calendar(libhours_gdata_authenticate());
