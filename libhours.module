@@ -91,15 +91,8 @@ function libhours_get_events($startMin = null, $startMax = null, $text = '') {
   $query->setProjection('full');
   $query->setOrderBy('starttime');
   $query->setSortOrder('ascending');
-  // specify date range
-  if ($startMin == null) {
-    $startMin = date(DATE_ATOM);
-    $query->setStartMin($startMin);
-  }
-  if ($startMax == null) {
-    $startMax = date(DATE_ATOM, time() + 604800 + 86400); // one week in the future + 1 day because start-max is exclusive
-    $query->setStartMax($startMax);
-  }
+  $query->setStartMin($startMin);
+  $query->setStartMax($startMax);
   // allow for fulltext queries
   if (!empty($text)) {
     $query->setQuery($text);
@@ -112,9 +105,11 @@ function libhours_get_events($startMin = null, $startMax = null, $text = '') {
  * Display hours in a page
  */
 function libhours_page() {
-  $events = libhours_get_events();
+  $events = libhours_get_events(date(DATE_ATOM, time() - 86400), date(DATE_ATOM, time() + 86400*6));
   foreach($events as $event) {
     $items[$event->title->text][] = array(
+      'isodate' => date('Y-m-d', strtotime($event->when[0]->startTime)),
+      'dayOfWeek' => date('l', strtotime($event->when[0]->startTime)),
       'timestamp' => strtotime($event->when[0]->startTime),
       'startTime' => date('g:i A', strtotime($event->when[0]->startTime)),
       'endTime' => date('g:i A', strtotime($event->when[0]->endTime))
@@ -137,7 +132,7 @@ function libhours_block($op = 'list', $delta = 0, $edit = array()) {
      $blocks[0]['cache'] = BLOCK_NO_CACHE;
      return $blocks;
    case "view":
-     $events = libhours_get_events(date(DATE_ATOM), date(DATE_ATOM, time() + 86400));
+     $events = libhours_get_events(date(DATE_ATOM, time() - 86400), date(DATE_ATOM, time() + 86400));
      $items = array();
      foreach($events as $event) {
        $items[$event->title->text][] = array(
@@ -145,7 +140,6 @@ function libhours_block($op = 'list', $delta = 0, $edit = array()) {
          'endTime' => date('g:i A', strtotime($event->when[0]->endTime))
        );
      }
-
      $block['subject'] = t('Hours for '. date("D. F j"));
      $block['content'] = theme('libhours_block', $items);
      return $block;
