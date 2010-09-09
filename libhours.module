@@ -58,7 +58,8 @@ function libhours_theme() {
     'libhours_page' => array(
       'arguments' => array(
         'items' => NULL
-      )
+      ),
+      'template' => 'libhours_page'
     )
   );
 }
@@ -82,7 +83,7 @@ function libhours_gdata_authenticate() {
 /**
  * Return events
  */
-function libhours_get_events($start = null, $end = null) {
+function libhours_get_events($startMin = null, $startMax = null, $text = '') {
   $calendar = new Zend_Gdata_Calendar(libhours_gdata_authenticate());
   $query = new Zend_Gdata_Calendar_EventQuery();
   $query->setUser(variable_get('libhours_id', 'default'));
@@ -90,6 +91,19 @@ function libhours_get_events($start = null, $end = null) {
   $query->setProjection('full');
   $query->setOrderBy('starttime');
   $query->setSortOrder('ascending');
+  // specify date range
+  if ($startMin == null) {
+    $startMin = date(DATE_ATOM);
+    $query->setStartMin($startMin);
+  }
+  if ($startMax == null) {
+    $startMax = date(DATE_ATOM, time() + 604800 + 86400); // one week in the future + 1 day because start-max is exclusive
+    $query->setStartMax($startMax);
+  }
+  // allow for fulltext queries
+  if (!empty($text)) {
+    $query->setQuery($text);
+  }
   $eventFeed = $calendar->getCalendarEventFeed($query);
   return $eventFeed;
 }
@@ -100,23 +114,17 @@ function libhours_get_events($start = null, $end = null) {
 function libhours_page() {
   $events = libhours_get_events();
   foreach($events as $event) {
-    $startTime = date('g:i A', strtotime($event->when[0]->startTime));
-    $endTime = date('g:i A', strtotime($event->when[0]->endTime));
     $items[$event->title->text][] = array(
-      'startTime' => $startTime,
-      'endTime' => $endTime
+      'timestamp' => strtotime($event->when[0]->startTime),
+      'startTime' => date('g:i A', strtotime($event->when[0]->startTime)),
+      'endTime' => date('g:i A', strtotime($event->when[0]->endTime))
     );
   }
-  dpr($items);
-  return $items;
-  //return theme('libhours_page', $items);
+  return theme('libhours_page', $items);
 }
 
-/**
- * Theme the library hours page
- */
-function theme_libhours_page($items) {
-  
+function libhours_preprocess(&$vars) {
+  //dpr($vars);
 }
 
 /**
@@ -129,15 +137,15 @@ function libhours_block($op = 'list', $delta = 0, $edit = array()) {
      $blocks[0]['cache'] = BLOCK_NO_CACHE;
      return $blocks;
    case "view":
-     $events = libhours_get_events();
+     $events = libhours_get_events(date(DATE_ATOM), date(DATE_ATOM, time() + 86400));
+     $items = array();
      foreach($events as $event) {
-       $startTime = date('g:i A', strtotime($event->when[0]->startTime));
-       $endTime = date('g:i A', strtotime($event->when[0]->endTime));
        $items[$event->title->text][] = array(
-         'startTime' => $startTime,
-         'endTime' => $endTime
+         'startTime' => date('g:i A', strtotime($event->when[0]->startTime)),
+         'endTime' => date('g:i A', strtotime($event->when[0]->endTime))
        );
      }
+
      $block['subject'] = t('Hours for '. date("D. F j"));
      $block['content'] = theme('libhours_block', $items);
      return $block;
