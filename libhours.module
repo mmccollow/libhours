@@ -1,6 +1,6 @@
 <?php
 
-include('libhours.admin.inc');
+module_load_include('inc', 'libhours', 'libhours.admin');
 
 // add zend gdata library directory to the php include path
 $gdata_library_path = dirname(__FILE__) . '/ZendGdata/library';
