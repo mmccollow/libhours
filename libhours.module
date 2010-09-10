@@ -124,24 +124,24 @@ function libhours_page() {
  * Implementation of hook_block()
  */
 function libhours_block($op = 'list', $delta = 0, $edit = array()) {
- switch($op) {
-   case "list":
-     $blocks[0]['info'] = t('Libhours block');
-     $blocks[0]['cache'] = BLOCK_NO_CACHE;
-     return $blocks;
-   case "view":
-     $events = libhours_get_events(date(DATE_ATOM, time() - 86400), date(DATE_ATOM, time() + 86400));
-     $items = array();
-     foreach($events as $event) {
-       $items[$event->title->text][] = array(
-         'startTime' => date('g:i A', strtotime($event->when[0]->startTime)),
-         'endTime' => date('g:i A', strtotime($event->when[0]->endTime))
-       );
-     }
-     $block['subject'] = t('Hours for '. date("D. F j"));
-     $block['content'] = theme('libhours_block', $items);
-     return $block;
- }
+  switch($op) {
+    case "list":
+      $blocks[0]['info'] = t('Libhours block');
+      $blocks[0]['cache'] = BLOCK_NO_CACHE;
+      return $blocks;
+    case "view":
+      $events = libhours_get_events(date(DATE_ATOM, time() - 86400), date(DATE_ATOM, time() + 86400));
+      $items = array();
+      foreach($events as $event) {
+        $items[$event->title->text][] = array(
+          'startTime' => date('g:i A', strtotime($event->when[0]->startTime)),
+          'endTime' => date('g:i A', strtotime($event->when[0]->endTime))
+        );
+      }
+      $block['subject'] = t('Hours for '. date("D. F j"));
+      $block['content'] = theme('libhours_block', $items);
+      return $block;
+  }
 }
 
 /**
