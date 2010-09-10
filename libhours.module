@@ -120,10 +120,6 @@ function libhours_page() {
   return theme('libhours_page', $items);
 }
 
-function libhours_preprocess(&$vars) {
-  //dpr($vars);
-}
-
 /**
  * Implementation of hook_block()
  */
