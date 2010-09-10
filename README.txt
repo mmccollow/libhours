@@ -16,3 +16,4 @@ This module currently supports only one public calendar feed.
 TODO:
 - Provide page output. Show a table of hours for the week for each location.
 - Remove Google authentication code if we don't need it (this is a public calendar after all)
+- Support for "closed" days
