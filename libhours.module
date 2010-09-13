@@ -109,7 +109,7 @@ function libhours_get_events($startMin = null, $startMax = null, $text = '') {
 function libhours_page() {
   $events = libhours_get_events(date(DATE_ATOM, time() - 86400), date(DATE_ATOM, time() + 86400*6));
   foreach($events as $event) {
-    $items[$event->title->text][] = array(
+    $items[$event->title->text][date('Y-m-d', strtotime($event->when[0]->startTime))] = array(
       'isodate' => date('Y-m-d', strtotime($event->when[0]->startTime)),
       'dayOfWeek' => date('l', strtotime($event->when[0]->startTime)),
       'timestamp' => strtotime($event->when[0]->startTime),

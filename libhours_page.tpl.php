@@ -10,19 +10,15 @@
     <th><?php echo date('l', time() + 86400*6); ?></th>
   </tr>
   <?php foreach($items as $key => $item): ?>
-    <?php $count = 0; ?>
     <tr>
       <td><?php echo $key; ?></td>
-      <?php foreach($item as $event): ?>
+      <?php for ($count = 0; $count < 7; $count++): ?>
         <td>
-        <?php
-          if (date('Y-m-d', time() + 86400 * $count) == $event['isodate']) {
-            echo $event['startTime'] ." - ". $event['endTime'];
-          }
-          $count++;
-        ?>
+        <?php if (isset($items[$key][date('Y-m-d', time() + 86400 * $count)])): ?>
+          <?php echo $items[$key][date('Y-m-d', time() + 86400 * $count)]['startTime'] . " - ". $items[$key][date('Y-m-d', time() + 86400 * $count)]['endTime']; ?>
+        <?php endif; ?>
         </td>
-      <?php endforeach; ?>
+      <?php endfor; ?>
     </tr>
   <?php endforeach; ?>
 </table>
